@@ -2,6 +2,23 @@
 
 **HydraSec** adalah platform web untuk **membantu perusahaan, kelompok UMKM, bahkan perorangan mendeteksi kerentanan (vulnerability) yang terdapat pada website mereka** — menggunakan enam tool pengujian keamanan standar industri yang terkonsolidasi dalam satu antarmuka.
 
+<p align="center">
+        <img width="49%" alt="Screenshot 2026-11-09 205140" src="https://github.com/user-attachments/assets/75825be9-7645-4e60-8d86-b051a38002a9" />
+        <img width="49%" alt="Screenshot 2026-11-09 205152" src="https://github.com/user-attachments/assets/75468aeb-4d98-4947-beb7-369d5256e8df" />
+</p>
+<p align="center">
+        <img width="49%" alt="Screenshot 2026-11-09 205201" src="https://github.com/user-attachments/assets/ccbe94f6-6631-4ced-bacd-8f6fb09b7964" />
+        <img width="49%" alt="Screenshot 2026-11-09 205212" src="https://github.com/user-attachments/assets/26aa34d6-60c7-4eb9-98e0-699c4d3cd846" />
+</p>
+<p align="center">
+        <img width="49%" alt="Screenshot 2026-11-09 205229" src="https://github.com/user-attachments/assets/08ea5789-63dd-4b08-878c-6c15b2a90201" />
+        <img width="49%" alt="Screenshot 2026-11-09 205407" src="https://github.com/user-attachments/assets/f4f813bf-d7dc-4440-b128-091c45073c37" />
+</p>
+<p align="center">
+        <img width="49%" alt="Screenshot 2026-11-09 205455" src="https://github.com/user-attachments/assets/f1319e8a-fb9d-4bbf-951c-32ca0abf18ad" />
+        <img width="49%" alt="Screenshot 2026-11-09 205811" src="https://github.com/user-attachments/assets/993ae53d-1297-4338-a50b-1833511073f2" />
+</p>
+
 ## Latar Belakang & Tujuan
 
 Hampir semua bisnis saat ini memiliki website — etalase UMKM, profil perusahaan, hingga aplikasi web sederhana milik perorangan. Namun kebanyakan pemiliknya **tidak pernah tahu apakah website-nya memiliki celah keamanan** seperti port yang tidak sengaja terbuka, halaman admin yang bocor, SQL injection pada form kontak, atau bahkan XSS pada kolom komentar.
