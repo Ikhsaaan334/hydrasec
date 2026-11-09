@@ -219,3 +219,19 @@ Semua tool adalah karya komunitas yang dijalankan apa adanya di dalam kontainer 
 | Prometheus kosong | tunggu ±1 menit scrape pertama; cek `/prometheus/targets` |
 | Template nuclei mau di-update | template ter-bake di image dan menetap di volume `hydrasec_nuclei_templates`. Update tanpa rebuild: `docker run --rm -u 10000 -e HOME=/home/scanner -v hydrasec_nuclei_templates:/home/scanner/nuclei-templates hydrasec/tool-nuclei -ut -silent` |
 | `docker` tidak dikenali di Windows | tambahkan `%LOCALAPPDATA%\Programs\DockerDesktop\resources\bin` ke PATH |
+
+**Deklarasi Penggunaan AI**
+
+Dalam pengerjaan proyek ini, saya menggunakan bantuan AI coding assistant (ZCode, yait model GLM 5.3) secara intensif pada tahap pengembangan. Deklarasi ini saya tulis dengan jujur demi integritas akademik.
+
+Peran AI dalam proyek ini:
+- Menyusun kerangka kode awal untuk backend (Node.js/Express), worker engine (BullMQ + Dockerode), frontend (ReactJS + xterm.js), konfigurasi Docker Compose, Nginx, dan Prometheus, serta Dockerfile keenam tool pengujian.
+- Membantu diagnosa dan perbaikan sejumlah bug runtime, di antaranya: penamaan paket/tag release tool, perbandingan hash kode OTP, penanganan async pada validator input, pembacaan struktur XML nmap, serta izin baca/tulis direktori di dalam kontainer non-root.
+- Menerapkan praktik keamanan yang direkomendasikan: seluruh query SQL memakai parameter binding, guard SSRF dengan resolusi DNS dan penolakan alamat privat/loopback, kode OTP disimpan sebagai hash SHA-256, dan isolasi kontainer tool (non-root, capability drop, jaringan terpisah).
+- Menyusun draft README berdasarkan arsitektur yang telah dirancang oleh saya.
+
+Peran saya :
+- Menentukan ide dan konsep aplikasi untuk menyelesaikan permasalahan di masyarakat dalam ranah digital
+- Menentukan keseluruhan kebutuhan aplikasi, konsep arsitektur aplikasi, pemilihan keenam tools penetration testing, serta seluruh keputusan fitur aplikasi(autentikasi OTP tanpa password, username unik untuk leaderboard, antrean dengan kendali konkurensi, dsb.).
+- Menjalankan seluruh verifikasi secara mandiri: build image, scanning ke target yang legal untuk pengujian tools, pengujian alur OTP menggunakan mailpit dan username unik, serta pengujian keenam tool satu per satu hingga berfungsi.
+- Merekam video demo dan melakukan operasi Git/GitHub.
