@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    metrics_path: /prometheus/metrics
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: backend-api
+    static_configs:
+      - targets: ['backend-api:3001']
+
+  - job_name: background-worker
+    static_configs:
+      - targets: ['background-worker:9591']
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']

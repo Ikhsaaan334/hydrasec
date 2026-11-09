@@ -1,0 +1,192 @@
+name: hydrasec
+
+services:
+  # ── LAYER 2: API GATEWAY & REVERSE PROXY ────────────────────────────────
+  web-gateway:
+    image: nginx:1.27-alpine
+    container_name: hydrasec-gateway
+    ports:
+      - "${GATEWAY_PORT:-8080}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend-app
+      - backend-api
+      - prometheus
+    restart: unless-stopped
+    networks: [internal]
+
+  # ── LAYER 1: CLIENT PRESENTATION (React SPA, served by nginx) ──────────
+  frontend-app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hydrasec-frontend
+    restart: unless-stopped
+    networks: [internal]
+
+  # ── LAYER 3: CORE APPLICATION SERVICE ──────────────────────────────────
+  backend-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hydrasec-backend
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://${POSTGRES_USER:-hydrasec}:${POSTGRES_PASSWORD:-hydrasec}@primary-database:5432/${POSTGRES_DB:-hydrasec}
+      REDIS_URL: redis://task-broker:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-in-production}
+      JWT_TTL: ${JWT_TTL:-7d}
+      SMTP_URL: ${SMTP_URL:-smtp://mailpit:1025}
+      MAIL_FROM: ${MAIL_FROM:-HydraSec <no-reply@hydrasec.local>}
+      OTP_TTL_SECONDS: ${OTP_TTL_SECONDS:-300}
+      OTP_LENGTH: 6
+      OTP_MAX_ATTEMPTS: 5
+      OTP_RESEND_COOLDOWN: ${OTP_RESEND_COOLDOWN:-60}
+      ALLOW_PRIVATE_TARGETS: ${ALLOW_PRIVATE_TARGETS:-false}
+      SCAN_QUEUE: scans
+    depends_on:
+      primary-database:
+        condition: service_healthy
+      task-broker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    networks: [internal]
+
+  # ── LAYER 5: ASYNCHRONOUS WORKER ENGINE ────────────────────────────────
+  background-worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: hydrasec-worker
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-hydrasec}:${POSTGRES_PASSWORD:-hydrasec}@primary-database:5432/${POSTGRES_DB:-hydrasec}
+      REDIS_URL: redis://task-broker:6379
+      SCAN_QUEUE: scans
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      DOCKER_NETWORK: hydrasec_sandbox
+      DOCKER_TOOL_PREFIX: hydrasec/tool-
+      DOCKER_DATA_VOLUME: hydrasec_tooldata
+      DOCKER_NUCLEI_VOLUME: hydrasec_nuclei_templates
+      TOOL_DATA_ROOT: /data
+      METRICS_PORT: 9591
+      ALLOW_PRIVATE_TARGETS: ${ALLOW_PRIVATE_TARGETS:-false}
+    volumes:
+      # Docker Socket API: worker memicu lifecycle kontainer tools
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Shared volume untuk artefak output mentah tiap scan
+      - tooldata:/data
+    depends_on:
+      primary-database:
+        condition: service_healthy
+      task-broker:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [internal, sandbox]
+
+  # ── DATABASE STATE ──────────────────────────────────────────────────────
+  primary-database:
+    image: postgres:16-alpine
+    container_name: hydrasec-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hydrasec}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hydrasec}
+      POSTGRES_DB: ${POSTGRES_DB:-hydrasec}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hydrasec} -d ${POSTGRES_DB:-hydrasec}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    networks: [internal]
+
+  # ── DISTRIBUTED MESSAGE BROKER ──────────────────────────────────────────
+  task-broker:
+    image: redis:7-alpine
+    container_name: hydrasec-redis
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    networks: [internal]
+
+  # ── SMTP RECEIVER UNTUK OTP (web UI: http://localhost:8025) ─────────────
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: hydrasec-mailpit
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+    restart: unless-stopped
+    networks: [internal]
+
+  # ── SYSTEM MONITOR: PROMETHEUS + cADVISOR ───────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: hydrasec-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=3d
+      - --web.external-url=/prometheus/
+      - --web.route-prefix=/prometheus/
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/prometheus/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    networks: [internal]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: hydrasec-cadvisor
+    privileged: true
+    command:
+      - --housekeeping_interval=15s
+      - --docker_only=true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: unless-stopped
+    networks: [internal]
+
+networks:
+  internal:
+    name: hydrasec_internal
+  # Sandbox terisolasi: kontainer tools HANYA bergabung di sini.
+  # Tidak punya akses ke internal (db/redis/backend), tapi tetap bisa
+  # keluar internet untuk memindai target publik.
+  sandbox:
+    name: hydrasec_sandbox
+
+volumes:
+  pgdata:
+    name: hydrasec_pgdata
+  tooldata:
+    name: hydrasec_tooldata
+  # Template nuclei persisten: terisi otomatis dari image (baked) saat pemakaian
+  # pertama, dan bisa diperbarui kapan pun dengan nuclei -ut tanpa rebuild image
+  nuclei_templates:
+    name: hydrasec_nuclei_templates
+  prometheus_data:
+    name: hydrasec_promdata

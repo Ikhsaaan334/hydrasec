@@ -1,0 +1,9 @@
+.env
+node_modules/
+dist/
+*.log
+.taste-skill/
+.mimosa/
+shots/
+.DS_Store
+Thumbs.db
