@@ -19,6 +19,9 @@
         <img width="49%" alt="Screenshot 2026-11-09 205811" src="https://github.com/user-attachments/assets/993ae53d-1297-4338-a50b-1833511073f2" />
 </p>
 
+## Demo Aplikasi
+https://youtu.be/6wBv4uHQg-w
+
 ## Latar Belakang & Tujuan
 
 Hampir semua bisnis saat ini memiliki website — etalase UMKM, profil perusahaan, hingga aplikasi web sederhana milik perorangan. Namun kebanyakan pemiliknya **tidak pernah tahu apakah website-nya memiliki celah keamanan** seperti port yang tidak sengaja terbuka, halaman admin yang bocor, SQL injection pada form kontak, atau bahkan XSS pada kolom komentar.
